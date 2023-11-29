@@ -1,0 +1,224 @@
+{% extends "main/base.html" %}
+{% load crispy_forms_filters %}
+{% load customtags %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock head %}
+{% block body %}
+
+
+
+<div class="flex flex-row justify-center">
+    
+    <div class="md:w-4/6 gap-5 flex flex-col justify-center">
+        {% if user == user %}
+        <!--<div class="flex gap-2 text-sm">
+            <a href="{% url 'user-site-delete' site.id %}">Delete</a>
+            <a href="{% url 'user-site-update' site.id %}">Update</a>
+        </div>
+        <a href="{% url 'main' %}"><span class="font-bold text-gray-400 text-sm hover:text-blue-500">Назад</span></a>-->
+        {% endif %}
+        <nav>
+            <ul class="flex flex-cols items-center text-gray-500 font-semibold">
+                <a href="{% url 'main' %}"><li class="hover:text-sky-600">Главная</li></a>
+                <li><svg aria-hidden="true" class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                </li>
+                <a href="{% url 'site' site.id %}"><li class="hover:text-sky-600">{{site.name}}</li></a>
+            </ul>
+        </nav>
+        <div class="flex flex-col lg:flex-row justify-between gap-y-4 lg:gap-4">
+            <div class="gap-5 flex flex-col justify-center lg:w-9/12">
+                <div class="bg-white rounded-md overflow-hidden shadow lg:flex items-center pl-2 lg:pl-5 lg:gap-5">
+                    <a href="{{site.url}}" class=""><img class="h-16 object-cover bg-gray-100 bg-white mx-auto" src="{{site.siteprofile.image.url}}"></a>
+                    <div class="w-80 p-5 lg:border-l flex-grow mx-auto">
+                        <span class="block font-semibold text-xl lg:text-2xl">{{site.name}}</span>
+                        <a href="{{site.url}}"><span class="text-gray-500 text-sm">{{site.url}}</span></a>
+                    </div>
+                    {% if rating %}
+                    <div class="flex items-center pl-24 md:pr-5">
+                        <svg aria-hidden="true" class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>Rating star</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        <p class="text-gray-400 text-sm font-semibold">{{rating|mean}}</p>
+                        <span class="w-1 h-1 mx-1.5 bg-gray-400 rounded-full" ></span>
+                        <p class="text-gray-400 text-sm font-semibold break-normal">{{rating|length}} отзыва</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="bg-white rounded-md overflow-hidden shadow p-5 flex flex-col gap-4">
+                    <span class="font-semibold text-xl">Доступность сайта</span>
+                    <canvas id="graph"></canvas>
+                </div>
+                <div class="bg-white rounded-md overflow-hidden shadow p-5 flex flex-col gap-4">
+                    <span class="font-semibold text-xl">Сообщения о сбоях</span>
+                    <canvas id="graph_reports"></canvas>
+                </div>
+                <!--<form method="POST">
+                    {%csrf_token%}
+                    {{form|crispy}}
+                    <button type="submit" class="transition ease-out p-2 shadow rounded-md p-5 bg-white hover:shadow-md hover:bg-red-600 hover:text-white font-semibold w-full h-12">Report site</button>
+                </form>-->
+                <script>
+                    var config = {
+                        type: 'line',
+                        data: {
+                            labels: [{% for time in 0|dict_range:site %}"{{ site|get_key:time }}",{% endfor %}],
+                            datasets: [
+                                {
+                                    label: "Задержка (мс)",
+                                    backgroundColor: 'rgb(220, 38, 38)',
+                                    borderColor: 'rgb(220, 38, 38)',
+                                    data: [{% for value in 0|dict_range:site %}{{ site|get_value:value | first}},{% endfor %}],
+                                    tension: 0.3,
+                                    fill: {
+                                        target:"origin"
+                                    }
+                                },
+                            ],
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                beginAtZero: true
+                                }
+                            },
+            
+                            elements:{
+                                point:{
+                                    borderWidth: 0,
+                                    radius: 0,
+                                    backgroundColor: 'rgba(0,0,0,0)'
+                                }
+                            },
+                            responsive: true,
+                            interaction: {
+                                intersect: false
+                            },
+                        }
+                    };
+                    
+                    const ctx = document.getElementById('graph');
+                    var ping_chart = new Chart(ctx, config); 
+
+                    const ctx_rep = document.getElementById('graph_reports');
+                    var reports_chart = new Chart(ctx_rep, {
+                        type: 'line',
+                        data: {
+                            labels: [{% for time in 0|dict_range:site %}"{{ site|get_key:time }}",{% endfor %}],
+                            datasets: [
+                                {
+                                    label: "Сбои",
+                                    backgroundColor: 'rgb(220, 38, 38)',
+                                    borderColor: 'rgb(220, 38, 38)',
+                                    data: [{% for value in 0|dict_range:site %}{{ site|get_value:value | last }},{% endfor %}],
+                                    tension: 0.3,
+                                    fill: {
+                                        target:"origin"
+                                    }
+                                },
+                            ],
+                        },
+                        options: {
+
+                        
+                            scales: {
+                                y: {
+                                beginAtZero: true
+                                }
+                            },
+            
+                            elements:{
+                                point:{
+                                    borderWidth: 0,
+                                    radius: 0,
+                                    backgroundColor: 'rgba(0,0,0,0)'
+                                }
+                            },
+
+                            responsive: true,
+                            interaction: {
+                                intersect: false
+                            },
+                        }
+                    });
+                    
+                    window.onload = function() {
+                        make_pdf_form = document.getElementById("make_pdf");
+                        make_pdf_form.onclick = function() { 
+                            document.getElementById('id_graph').value = reports_chart.toBase64Image();
+                            document.getElementById('id_graph').value += ping_chart.toBase64Image();
+                        };
+                    };
+                </script>
+        
+            </div>
+            <div class=" gap-y-5 lg:w-3/12 flex flex-col lg:gap-5">
+                    <form method="POST" class="bg-white rounded-md shadow overflow-hidden p-3">
+                        {%csrf_token%}
+                        <span class="text-tg font-semibold">Оцените работу сайта</span>
+                        <div class="flex flex-row-reverse justify-center">
+                            <button type="submit" name="5" class="peer peer-hover:text-yellow-400 hover:text-yellow-400 w-10 h-10 text-gray-300"><svg aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>5</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></button>
+                            <button type="submit" name="4" class="peer peer-hover:text-yellow-400 hover:text-yellow-400 w-10 h-10 text-gray-300"><svg aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>4</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></button>
+                            <button type="submit" name="3" class="peer peer-hover:text-yellow-400 hover:text-yellow-400 w-10 h-10 text-gray-300"><svg aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>3</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></button>
+                            <button type="submit" name="2" class="peer peer-hover:text-yellow-400 hover:text-yellow-400 w-10 h-10 text-gray-300"><svg aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>2</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></button>
+                            <button type="submit" name="1" class="peer peer-hover:text-yellow-400 hover:text-yellow-400 w-10 h-10 text-gray-300"><svg aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><title>1</title><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg></button>
+                        </div>
+             
+                    </form>
+                    <div class="flex flex-col bg-white rounded-md shadow overflow-hidden p-3">
+                        <span class="text-md font-semibold">Составить отчет</span>
+                        <form method="POST">
+                            {%csrf_token%}
+                            {{graph_image_form}}
+                            <button id="make_pdf" name="make-pdf" type="submit" class="transition ease-out p-2 shadow rounded-md p-5 bg-sky-100 hover:shadow-md hover:bg-red-600 hover:text-white font-semibold w-full h-12">Скачать pdf</button>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-md shadow overflow-hidden p-3">
+                        <span class="font-semibold text-md">Доступен ли сайт?</span>
+                        <form method="POST">
+                            {%csrf_token%}
+                            <button name="site-report" type="submit" class="transition ease-out p-2 shadow rounded-md p-5 bg-sky-100 hover:shadow-md hover:bg-red-600 hover:text-white font-semibold w-full h-12">Сообщить о недоступности</button>
+                        </form>
+                    </div>    
+            </div>
+        </div>
+        <div class="bg-white rounded-md shadow flex flex-col gap-5 p-3">
+            <span class="font-semibold text-xl">Комментарии ({{comments|length}})</span>
+            <form method="POST">
+                {%csrf_token%}
+                {{form|crispy}}
+                <button class="transition ease-out text-sm p-2 bg-sky-100 rounded-md font-semibold hover:bg-sky-500 hover:text-white" type="submit">Отправить</button>
+            </form>
+        </div>
+        {% if comments %}
+        <div class="bg-white rounded-md shadow p-3 justify-center flex flex-col gap-5">
+            {% for comment in comments %}
+            <div class="rounded-md">
+                <div class="flex text-sm items-center justify-between p-2">
+                    <div class="flex items-center gap-2">
+                        <img class="rounded-full h-8 w-8 object-cover" src="{{comment.user.profile.image.url}}">
+                        <div>
+                            <span class="block">{{comment.user.username}}</span>
+                            <span class="text-gray-500">{{comment.date|date:"F d, Y"}}</span>
+                        </div>
+                    </div>
+
+                    <button class="transition ease-out text-gray-400 hover:bg-gray-100 focus:ring-2 focus:ring-gray-200 focus:text-black p-2 rounded-md" data-dropdown-toggle="commentDropdown{{comment.id}}" type="button"><svg class="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path></svg></button>
+                    <div class="hidden bg-white shadow rounded-md" id="commentDropdown{{comment.id}}">
+                        <ul class="transition ease-out text-gray-600">
+                            <a href="{% url 'comment-delete' comment.id %}"><li class="hover:bg-gray-100 hover:text-black p-3 pr-10">Удалить</li></a>
+                        </ul>
+                    </div>
+
+                </div>
+                <div class="p-2 pt-0">
+                    <span>{{comment.content}}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock body %}

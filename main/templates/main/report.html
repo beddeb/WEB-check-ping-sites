@@ -1,0 +1,14 @@
+{% load customtags %}
+<html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body>
+        <p>Отчет о доступности сайта {{site.url}}</p>
+        {% for image in images %}
+            {% if image %}<img src="data:;base64,{{image}}">{% endif %}
+        {% endfor %}
+        {% if site.reports %}<p>Количество сбоев за последние 24 часа: {{site.reports|mean_sites}}</p> {% endif %}
+        <p>Средняя задержка(сек) за 24 часа: {{site.values|mean_sites}}</p>
+    </body>
+</html>
